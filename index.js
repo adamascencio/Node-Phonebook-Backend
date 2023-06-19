@@ -83,17 +83,23 @@ app.delete("/api/persons/:id", (req, res) => {
 
 // add a new person
 app.post("/api/persons", (req, res) => {
-  const person = req.body;
-  if (persons.some((obj) => obj.name === person.name)) {
-    res.status(409).json({ error: "name must be unique" });
+  const body = req.body;
+
+  if (!body.name || !body.number) {
+    res.status(400).json({
+      error: "name or number missing",
+    });
     return;
   }
-  if (person.name === "" || person.number === "") {
-    res.status(409).json({ error: "all fields must be completed" });
-    return;
-  }
-  person.id = persons.length + 1;
-  res.json(person);
+
+  const person = new Person({
+    name: body.name,
+    number: body.number,
+  });
+
+  person.save().then((savedPerson) => {
+    res.json(savedPerson);
+  });
 });
 
 const unknownEndpoint = (request, response) => {
