@@ -9,6 +9,22 @@ morgan.token("body", (req) => {
   return JSON.stringify(req.body);
 });
 
+const errorHandler = (err, req, res, next) => {
+  if (err) console.error(err.message);
+
+  if (!req.body.name || !req.body.number) {
+    res.status(400).json({
+      error: "name or number missing",
+    });
+  }
+
+  if (err.name === "CastError") {
+    return res.status(400).send({ error: "malformatted id" });
+  }
+
+  next(err);
+};
+
 const requestLogger = (request, response, next) => {
   console.log("---");
   console.log("Method:", request.method);
@@ -53,17 +69,15 @@ app.delete("/api/persons/:id", (req, res) => {
     .then((result) => {
       res.status(204).end();
     })
-    .catch((error) => console.log(error));
+    .catch((error) => next(error));
 });
 
 // add a new person
-app.post("/api/persons", (req, res) => {
+app.post("/api/persons", (req, res, next) => {
   const body = req.body;
 
   if (!body.name || !body.number) {
-    res.status(400).json({
-      error: "name or number missing",
-    });
+    next();
     return;
   }
 
@@ -77,11 +91,28 @@ app.post("/api/persons", (req, res) => {
   });
 });
 
+// update existing person
+app.put("/api/persons/:id", (req, res, next) => {
+  const body = req.body;
+
+  const person = {
+    name: body.name,
+    number: body.number,
+  };
+
+  Person.findByIdAndUpdate(req.params.id, person, { new: true })
+    .then((returnedPerson) => {
+      res.json(returnedPerson);
+    })
+    .catch((error) => next(error));
+});
+
 const unknownEndpoint = (request, response) => {
   response.status(404).send({ error: "unknown endpoint" });
 };
 
 app.use(unknownEndpoint);
+app.use(errorHandler);
 
 const PORT = process.env.PORT;
 
