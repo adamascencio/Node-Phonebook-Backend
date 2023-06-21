@@ -49,18 +49,23 @@ app.get("/api/persons", (req, res) => {
 
 // get info
 app.get("/info", (req, res) => {
-  res.send(
-    `<p>Phonebook has info for ${
-      persons.length
-    } people<br/><p>${new Date()}</p>`
-  );
+  Person.find({}).then((persons) => {
+    console.log(persons);
+    res.send(
+      `<p>Phonebook has info for ${persons.length} people</p>
+      </br>
+      <p>${new Date()}</p>
+      `
+    );
+  });
 });
 
 // get a specific person
-app.get("/api/persons/:id", (req, res) => {
-  const id = Number(req.params.id);
-  const person = persons.find((person) => person.id === id);
-  person ? res.json(person) : res.status(404).end();
+app.get("/api/persons/:id", (req, res, next) => {
+  const id = req.params.id;
+  Person.findById(id)
+    .then((person) => res.json(person))
+    .catch((error) => next(error));
 });
 
 // delete a specific person
