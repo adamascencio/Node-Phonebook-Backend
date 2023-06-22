@@ -10,16 +10,12 @@ morgan.token("body", (req) => {
 });
 
 const errorHandler = (err, req, res, next) => {
-  if (err) console.error(err.message);
-
-  if (!req.body.name || !req.body.number) {
-    res.status(400).json({
-      error: "name or number missing",
-    });
-  }
+  console.error(err.message);
 
   if (err.name === "CastError") {
     return res.status(400).send({ error: "malformatted id" });
+  } else if (err.name === "ValidationError") {
+    return res.status(400).send({ error: err.message });
   }
 
   next(err);
@@ -82,8 +78,7 @@ app.post("/api/persons", (req, res, next) => {
   const body = req.body;
 
   if (!body.name || !body.number) {
-    next();
-    return;
+    return res.status(400).json({ error: "name or number missing" });
   }
 
   const person = new Person({
@@ -91,9 +86,12 @@ app.post("/api/persons", (req, res, next) => {
     number: body.number,
   });
 
-  person.save().then((savedPerson) => {
-    res.json(savedPerson);
-  });
+  person
+    .save()
+    .then((savedPerson) => {
+      res.json(savedPerson);
+    })
+    .catch((error) => next(error));
 });
 
 // update existing person
